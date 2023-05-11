@@ -13,6 +13,7 @@ const ContactList = () => {
     age: '',
     photo: '',
   })
+  
   const { getListContactResult, getListContactLoading, getListContactError } = useSelector(
     (state) => state.ContactReducer,
   )
@@ -49,12 +50,14 @@ const ContactList = () => {
     })
   }
 
-  const clearPayload = useCallback(() => {
-    payloadContact.firstName = ''
-    payloadContact.lastName = ''
-    payloadContact.age = ''
-    payloadContact.photo = ''
-  }, [payloadContact])
+  const clearPayload = () => {
+    setPayloadContact({
+      firstName: '',
+      lastName: '',
+      age: '',
+      photo: ''
+    })
+  }
   
   const handleShowAddModal = () => {
     setTypeSubmit('add')
@@ -73,44 +76,47 @@ const ContactList = () => {
 
   const handleDelete = (id) => {
     dispatch(deleteContact(id))
-  }
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    if(typeSubmit === 'add') {
-      dispatch(postNewContact(payloadContact))
-    } else if (typeSubmit === 'edit') {
-      dispatch(updateContact(editId, payloadContact))
-    }
-  }
-
-  useEffect(() => {
-    dispatch(getListContact())
     if(!deleteContactLoading) {
       if(!deleteContactError){
         showNotification('Success delete contact')
+        dispatch(getListContact())
       }else{
         showNotification('Failed delete contact')
       }
     }
-    if(!postNewContactLoading) {
-      if(!postNewContactError){
-        showNotification('Succes add new contact')
-        clearPayload()
-        setShowModal(false)
-      }else{
-        showNotification('Failed add new contact')
+  }
+  const handleSubmit = useCallback((event) => {
+    event.preventDefault();
+    if(typeSubmit === 'add') {
+      dispatch(postNewContact(payloadContact))
+      if(!postNewContactLoading) {
+        if(!postNewContactError){
+          showNotification('Succes add new contact')
+          clearPayload()
+          setShowModal(false)
+          dispatch(getListContact())
+        }else{
+          showNotification('Failed add new contact')
+        }
+      }
+    } else if (typeSubmit === 'edit') {
+      dispatch(updateContact(editId, payloadContact))
+      if(!updateContactLoading) {
+        if(!updateContactError) {
+          showNotification('Succes updating contact')
+          clearPayload()
+          setShowModal(false)
+          dispatch(getListContact())
+        }else{
+          showNotification('Failed updating contact')
+        }
       }
     }
-    if(!updateContactLoading) {
-      if(!updateContactError) {
-        showNotification('Succes updating contact')
-        clearPayload()
-        setShowModal(false)
-      }else{
-        showNotification('Failed updating contact')
-      }
-    }
-  }, [updateContactLoading, updateContactError, postNewContactLoading, postNewContactError, deleteContactLoading, deleteContactError, dispatch, clearPayload])
+  }, [updateContactLoading, updateContactError, postNewContactLoading, postNewContactError,dispatch, editId, payloadContact, typeSubmit])
+  
+  useEffect(() => {
+    dispatch(getListContact())
+  }, [ dispatch])
 
   return (
     <>
