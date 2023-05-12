@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 const NavItem = (props) => {
   return (
     <Link
+      data-testid='nav-item'
       to={props.link}
       className="nav-item h-10 w-full rounded-md text-white p-2 flex items-center justify-between overflow-hidden cursor-pointer"
     >

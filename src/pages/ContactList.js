@@ -1,42 +1,44 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { getListContact, postNewContact, deleteContact, updateContact } from '../store/Actions/contact.action'
+import {
+  getListContact,
+  postNewContact,
+  deleteContact,
+  updateContact,
+} from '../store/Actions/contact.action'
 import { toast } from 'react-toastify'
 
 const ContactList = () => {
   const [showModal, setShowModal] = React.useState(false)
   const [typeSubmit, setTypeSubmit] = useState('add')
   const [editId, setEditId] = useState('')
-  const [payloadContact, setPayloadContact] = useState({
-    firstName: '',
-    lastName: '',
-    age: '',
-    photo: '',
-  })
-  
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [age, setAge] = useState('')
+  const [photo, setPhoto] = useState('')
+
   const { getListContactResult, getListContactLoading, getListContactError } = useSelector(
     (state) => state.ContactReducer,
   )
-  const { postNewContactLoading, postNewContactError  } = useSelector(
+  const { postNewContactLoading, postNewContactError } = useSelector(
     (state) => state.ContactReducer,
   )
-  const { deleteContactError, deleteContactLoading  } = useSelector(
-    (state) => state.ContactReducer,
-  )
-  const { updateContactError, updateContactLoading  } = useSelector(
-    (state) => state.ContactReducer,
-  )
-  
+  const { deleteContactError, deleteContactLoading } = useSelector((state) => state.ContactReducer)
+  const { updateContactError, updateContactLoading } = useSelector((state) => state.ContactReducer)
+
   const dispatch = useDispatch()
 
-
   const handleInputChange = (event) => {
-    const {name, value} = event.target;
-    
-    setPayloadContact((prev) => ({
-      ...prev,
-      [name]: value.replace(/\s/g, "")
-    }))
+    const { name, value } = event.target
+    name === 'firstName'
+      ? setFirstName(value.replace(/\s/g, ''))
+      : name === 'lastName'
+      ? setLastName(value.replace(/\s/g, ''))
+      : name === 'age'
+      ? setAge(value.replace(/\s/g, ''))
+      : name === 'photo'
+      ? setPhoto(value.replace(/\s/g, ''))
+      : console.log('none')
   }
   const showNotification = (message) => {
     toast(message, {
@@ -51,14 +53,12 @@ const ContactList = () => {
   }
 
   const clearPayload = () => {
-    setPayloadContact({
-      firstName: '',
-      lastName: '',
-      age: '',
-      photo: ''
-    })
+    setFirstName('')
+    setLastName('')
+    setAge('')
+    setPhoto('')
   }
-  
+
   const handleShowAddModal = () => {
     setTypeSubmit('add')
     clearPayload()
@@ -67,56 +67,78 @@ const ContactList = () => {
   const handleShowEditModal = (id, data) => {
     setTypeSubmit('edit')
     setEditId(id)
-    payloadContact.firstName = data.firstName
-    payloadContact.lastName = data.lastName
-    payloadContact.age = data.age
-    payloadContact.photo = data.photo
+    setFirstName(data.firstName)
+    setLastName(data.lastName)
+    setAge(data.age)
+    setPhoto(data.photo)
     setShowModal(true)
   }
 
   const handleDelete = (id) => {
     dispatch(deleteContact(id))
-    if(!deleteContactLoading) {
-      if(!deleteContactError){
+  }
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    if (typeSubmit === 'add') {
+      dispatch(
+        postNewContact({
+          firstName: firstName,
+          lastName: lastName,
+          age: age,
+          photo: photo,
+        }),
+      )
+    } else if (typeSubmit === 'edit') {
+      dispatch(
+        updateContact(editId, {
+          firstName: firstName,
+          lastName: lastName,
+          age: age,
+          photo: photo,
+        }),
+      )
+    }
+  }
+
+  useEffect(() => {
+    dispatch(getListContact())
+    if (!postNewContactLoading) {
+      if (!postNewContactError) {
+        showNotification('Succes add new contact')
+        clearPayload()
+        setShowModal(false)
+        dispatch(getListContact())
+      } else {
+        showNotification('Failed add new contact')
+      }
+    }
+    if (!updateContactLoading) {
+      if (!updateContactError) {
+        showNotification('Succes updating contact')
+        clearPayload()
+        setShowModal(false)
+        dispatch(getListContact())
+      } else {
+        showNotification('Failed updating contact')
+      }
+    }
+    if (!deleteContactLoading) {
+      if (!deleteContactError) {
         showNotification('Success delete contact')
         dispatch(getListContact())
-      }else{
+      } else {
         showNotification('Failed delete contact')
       }
     }
-  }
-  const handleSubmit = useCallback((event) => {
-    event.preventDefault();
-    if(typeSubmit === 'add') {
-      dispatch(postNewContact(payloadContact))
-      if(!postNewContactLoading) {
-        if(!postNewContactError){
-          showNotification('Succes add new contact')
-          clearPayload()
-          setShowModal(false)
-          dispatch(getListContact())
-        }else{
-          showNotification('Failed add new contact')
-        }
-      }
-    } else if (typeSubmit === 'edit') {
-      dispatch(updateContact(editId, payloadContact))
-      if(!updateContactLoading) {
-        if(!updateContactError) {
-          showNotification('Succes updating contact')
-          clearPayload()
-          setShowModal(false)
-          dispatch(getListContact())
-        }else{
-          showNotification('Failed updating contact')
-        }
-      }
-    }
-  }, [updateContactLoading, updateContactError, postNewContactLoading, postNewContactError,dispatch, editId, payloadContact, typeSubmit])
-  
-  useEffect(() => {
-    dispatch(getListContact())
-  }, [ dispatch])
+  }, [
+    updateContactLoading,
+    updateContactError,
+    postNewContactLoading,
+    postNewContactError,
+    deleteContactError,
+    deleteContactLoading,
+    dispatch,
+  ])
 
   return (
     <>
@@ -129,83 +151,75 @@ const ContactList = () => {
                   <h3 className="text-3xl font-semibold">Add New Contact</h3>
                 </div>
                 <form onSubmit={(event) => handleSubmit(event)}>
-                <div className="relative p-6 flex-auto w-full sm:w-106">
-                  <div className="grid items-center">
-                    <label className="text-lg">
-                      First Name :
-                    </label>
-                    <input
-                      type="text"
-                      value={payloadContact.firstName}
-                      id="firstName"
-                      required
-                      name='firstName'
-                      onChange={handleInputChange}
-                      className="border rounded-lg text-xl px-4 py-2"
-                      placeholder="Contact First Name"
-                    />
+                  <div className="relative p-6 flex-auto w-full sm:w-106">
+                    <div className="grid items-center">
+                      <label className="text-lg">First Name :</label>
+                      <input
+                        type="text"
+                        value={firstName}
+                        id="firstName"
+                        required
+                        name="firstName"
+                        onChange={handleInputChange}
+                        className="border rounded-lg text-xl px-4 py-2"
+                        placeholder="Contact First Name"
+                      />
+                    </div>
+                    <div className="grid items-center">
+                      <label className="text-lg">Last Name :</label>
+                      <input
+                        type="text"
+                        value={lastName}
+                        id="lastName"
+                        required
+                        name="lastName"
+                        onChange={handleInputChange}
+                        className="border rounded-lg text-xl px-4 py-2"
+                        placeholder="Contact Last Name"
+                      />
+                    </div>
+                    <div className="grid items-center">
+                      <label className="text-lg">Age :</label>
+                      <input
+                        type="number"
+                        value={age}
+                        onChange={handleInputChange}
+                        id="age"
+                        name="age"
+                        required
+                        className="border rounded-lg text-xl px-4 py-2"
+                        placeholder="Contact Age"
+                      />
+                    </div>
+                    <div className="grid items-center">
+                      <label className="text-lg">Photo URL :</label>
+                      <input
+                        type="text"
+                        id="photo"
+                        name="photo"
+                        onChange={handleInputChange}
+                        value={photo}
+                        className="border rounded-lg text-xl px-4 py-2"
+                        placeholder="Contact Photo Url"
+                        required
+                      />
+                    </div>
                   </div>
-                  <div className="grid items-center">
-                    <label  className="text-lg">
-                      Last Name :
-                    </label>
-                    <input
-                      type="text"
-                      value={payloadContact.lastName}
-                      id="lastName"
-                      required
-                      name='lastName'
-                      onChange={handleInputChange}
-                      className="border rounded-lg text-xl px-4 py-2"
-                      placeholder="Contact Last Name"
-                    />
+                  <div className="flex items-center justify-end p-6 border-t border-solid border-slate-200 rounded-b">
+                    <button
+                      className="text-red-500 background-transparent font-bold uppercase px-6 py-2 text-sm outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150"
+                      type="button"
+                      onClick={() => setShowModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="bg-emerald-500 text-white active:bg-emerald-600 font-bold uppercase text-sm px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150"
+                      type="submit"
+                    >
+                      Submit
+                    </button>
                   </div>
-                  <div className="grid items-center">
-                    <label  className="text-lg">
-                      Age :
-                    </label>
-                    <input
-                      type="number"
-                      value={payloadContact.age}
-                      onChange={handleInputChange}
-                      id="age"
-                      name='age'
-                      required
-                      className="border rounded-lg text-xl px-4 py-2"
-                      placeholder="Contact Age"
-                    />
-                  </div>
-                  <div className="grid items-center">
-                    <label  className="text-lg">
-                      Photo URL :
-                    </label>
-                    <input
-                      type="text"
-                      id="photo"
-                      name='photo'
-                      onChange={handleInputChange}
-                      value={payloadContact.photo}
-                      className="border rounded-lg text-xl px-4 py-2"
-                      placeholder="Contact Photo Url"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center justify-end p-6 border-t border-solid border-slate-200 rounded-b">
-                  <button
-                    className="text-red-500 background-transparent font-bold uppercase px-6 py-2 text-sm outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150"
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="bg-emerald-500 text-white active:bg-emerald-600 font-bold uppercase text-sm px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150"
-                    type="submit"
-                  >
-                    Submit
-                  </button>
-                </div>
                 </form>
               </div>
             </div>
@@ -230,9 +244,12 @@ const ContactList = () => {
             getListContactResult.map((contact) => {
               return (
                 <div key={contact.id}>
-                  <div className="flex m-2 bg-white rounded-lg p-4" >
+                  <div className="flex m-2 bg-white rounded-lg p-4">
                     <div className="align-items-center">
-                      {contact.photo && (contact.photo.includes('jpg') || contact.photo.includes('jpeg') || contact.photo.includes('png')) ? (
+                      {contact.photo &&
+                      (contact.photo.includes('jpg') ||
+                        contact.photo.includes('jpeg') ||
+                        contact.photo.includes('png')) ? (
                         <div
                           className="mr-2"
                           style={{
@@ -275,12 +292,18 @@ const ContactList = () => {
                       </div>
                       <div className=" my-4 flex gap-2 justify-end">
                         <div>
-                          <div className="text-xs bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer" onClick = {() => handleShowEditModal(contact.id, contact)}> 
+                          <div
+                            className="text-xs bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer"
+                            onClick={() => handleShowEditModal(contact.id, contact)}
+                          >
                             Edit
                           </div>
                         </div>
                         <div>
-                          <div className="text-xs bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded cursor-pointer" onClick={() => handleDelete(contact.id)}>
+                          <div
+                            className="text-xs bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded cursor-pointer"
+                            onClick={() => handleDelete(contact.id)}
+                          >
                             Delete
                           </div>
                         </div>

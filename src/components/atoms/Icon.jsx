@@ -110,7 +110,9 @@ const Icon = (props) => {
       icon = <div></div>
   }
 
-  return icon
+  return (
+    <div data-testid='icon'>{icon}</div>
+  )
 }
 
 export default Icon
